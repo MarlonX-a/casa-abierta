@@ -61,6 +61,8 @@ export default function CanvasComponent({ detector, isModelLoaded }) {
   const [fps, setFps] = useState(0);
   const fpsCounterRef = useRef(0);
   const fpsLastUpdateRef = useRef(performance.now());
+  const detectIntervalRef = useRef(FRAME_INTERVAL);
+  const lowPerfRef = useRef(false);
 
   const fpsClass = (() => {
     if (fps >= 50) return "fps-good";
@@ -84,7 +86,7 @@ export default function CanvasComponent({ detector, isModelLoaded }) {
   };
 
   const particlesRef = useRef([]);
-  const MAX_PARTICLES = 300;
+  let MAX_PARTICLES = 300;
 
   const clearBtnRef = useRef(null);
   const clearHoverRef = useRef({ start: 0 });
@@ -130,6 +132,7 @@ export default function CanvasComponent({ detector, isModelLoaded }) {
   const emitParticles = (normPoint, color, count = 12) => {
     const ctx = floatingCanvasCtxRef.current;
     if (!ctx) return;
+    if (lowPerfRef.current) return; // don't emit when in low-performance mode
     const now = performance.now();
     const canvasW = ctx.canvas.width;
     const canvasH = ctx.canvas.height;
@@ -344,7 +347,7 @@ export default function CanvasComponent({ detector, isModelLoaded }) {
     if (videoRef.current.readyState < 2) return;
 
     const now = performance.now();
-    if (now - lastProcessTimeRef.current < FRAME_INTERVAL) return;
+    if (now - lastProcessTimeRef.current < detectIntervalRef.current) return;
     
     // Solo procesar si hay un nuevo frame de video
     if (videoRef.current.currentTime === lastVideoTimeRef.current) return;
@@ -360,6 +363,16 @@ export default function CanvasComponent({ detector, isModelLoaded }) {
       setFps(measured);
       fpsCounterRef.current = 0;
       fpsLastUpdateRef.current = fpsNow;
+      // adaptative fallback: if measured FPS drops, increase detection interval and reduce effects
+      if (measured < 36) {
+        lowPerfRef.current = true;
+        detectIntervalRef.current = 1000 / 30; // fallback to 30 fps inference
+        MAX_PARTICLES = 80;
+      } else {
+        lowPerfRef.current = false;
+        detectIntervalRef.current = 1000 / TARGET_FPS;
+        MAX_PARTICLES = 300;
+      }
     }
 
     let hands;
@@ -382,7 +395,7 @@ export default function CanvasComponent({ detector, isModelLoaded }) {
     // Si estamos dibujando (puntos activos) dibujar efecto láser encima
     try {
       const pts = drawingPointsRef.current;
-      if (pts && pts.length > 1) {
+      if (!lowPerfRef.current && pts && pts.length > 1) {
         drawLaser(pts, ctx.canvas.width, ctx.canvas.height, ctx, { color: "#00f6ff" });
       }
     } catch (e) {}
@@ -417,37 +430,41 @@ export default function CanvasComponent({ detector, isModelLoaded }) {
 
     // Partículas AR
     try {
-      const nowP = performance.now();
-      const particles = particlesRef.current;
-      // update & draw
-      for (let i = particles.length - 1; i >= 0; i--) {
-        const p = particles[i];
-        const dt = Math.max(0, nowP - (p.lastTs || p.birth));
-        p.lastTs = nowP;
-        p.x += p.vx * dt;
-        p.y += p.vy * dt + 0.0005 * dt; // slight gravity
+      if (lowPerfRef.current) {
+        particlesRef.current = [];
+      } else {
+        const nowP = performance.now();
+        const particles = particlesRef.current;
+        // update & draw
+        for (let i = particles.length - 1; i >= 0; i--) {
+          const p = particles[i];
+          const dt = Math.max(0, nowP - (p.lastTs || p.birth));
+          p.lastTs = nowP;
+          p.x += p.vx * dt;
+          p.y += p.vy * dt + 0.0005 * dt; // slight gravity
 
-        const age = nowP - p.birth;
-        const lifeRatio = Math.max(0, Math.min(1, age / p.life));
-        const alpha = 1 - lifeRatio;
+          const age = nowP - p.birth;
+          const lifeRatio = Math.max(0, Math.min(1, age / p.life));
+          const alpha = 1 - lifeRatio;
 
-        if (age >= p.life) {
-          particles.splice(i, 1);
-          continue;
+          if (age >= p.life) {
+            particles.splice(i, 1);
+            continue;
+          }
+
+          ctx.save();
+          ctx.globalAlpha = Math.max(0, Math.min(1, alpha));
+          ctx.fillStyle = p.color;
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
         }
 
-        ctx.save();
-        ctx.globalAlpha = Math.max(0, Math.min(1, alpha));
-        ctx.fillStyle = p.color;
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.restore();
-      }
-
-      // cap total particles
-      if (particles.length > MAX_PARTICLES) {
-        particlesRef.current = particles.slice(particles.length - MAX_PARTICLES);
+        // cap total particles
+        if (particles.length > MAX_PARTICLES) {
+          particlesRef.current = particles.slice(particles.length - MAX_PARTICLES);
+        }
       }
     } catch (e) {
       // ignore particle errors

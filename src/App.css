@@ -150,7 +150,7 @@ canvas {
 .clear-card {
   position: relative !important;
   left: auto !important;
-  transform: translateY(6px) !important; /* bajar un poco */
+  transform: translateY(14px) !important; /* bajar un poco más */
   margin-left: 18px !important; /* empujar a la derecha un poco */
   width: 120px !important;
   height: 44px !important;
