@@ -50,6 +50,17 @@ function BrandHeader() {
             </div>
           </div>
         </div>
+
+        {/* Clear button card placed next to the brand card (outside of it) */}
+        <div className="pointer-events-auto ml-4">
+          <button id="clear-btn" className="clear-card clear-btn" onClick={() => {
+            // fallback manual clear: dispatch a custom event the canvas listens to
+            const ev = new CustomEvent('manualClear');
+            window.dispatchEvent(ev);
+          }}>
+            <div className="clear-inner"><span className="clear-icon">🧹</span><span>Borrar</span></div>
+          </button>
+        </div>
       </div>
     </div>
   );
