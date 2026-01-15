@@ -11,8 +11,10 @@ import {
   drawHands,
   drawPath,
   getClientPointFromCanvasPoint,
+  screenFromNormalized,
+  drawHalo,
+  drawLabel,
 } from "../utils/draw";
-import { screenFromNormalized, drawHalo, drawLabel, drawLaser } from "../utils/draw";
 
 /* =========================
   CONFIG PERFORMANCE
@@ -392,13 +394,7 @@ export default function CanvasComponent({ detector, isModelLoaded }) {
       drawHands(hands, ctx.canvas.width, ctx.canvas.height, ctx);
     }
 
-    // Si estamos dibujando (puntos activos) dibujar efecto láser encima
-    try {
-      const pts = drawingPointsRef.current;
-      if (!lowPerfRef.current && pts && pts.length > 1) {
-        drawLaser(pts, ctx.canvas.width, ctx.canvas.height, ctx, { color: "#00f6ff" });
-      }
-    } catch (e) {}
+    // (Laser effect removed) — no overlay laser drawing to keep FPS stable
 
     // Dibujar overlays de gestos encima de todo
     try {

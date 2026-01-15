@@ -118,44 +118,4 @@ export function drawLabel(ctx, x, y, { text = "", confidence = null, font = "600
   ctx.fillText(full, x - metrics.width / 2, y);
   ctx.restore();
 }
-
-// Dibuja un efecto tipo "láser" temporal sobre una lista de puntos normalizados
-export function drawLaser(points, canvasWidth, canvasHeight, ctx, { color = "#00e5ff" } = {}) {
-  if (!points || points.length < 2) return;
-
-  // convertir puntos normalizados a pixeles
-  const pts = points.map((p) => ({ x: p.x * canvasWidth, y: p.y * canvasHeight }));
-
-  ctx.save();
-  ctx.lineCap = "round";
-  ctx.lineJoin = "round";
-
-  // capa exterior (glow)
-  ctx.globalCompositeOperation = "lighter";
-  ctx.strokeStyle = color;
-  ctx.lineWidth = 22;
-  ctx.globalAlpha = 0.12;
-  ctx.beginPath();
-  ctx.moveTo(pts[0].x, pts[0].y);
-  for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
-  ctx.stroke();
-
-  // capa intermedia
-  ctx.lineWidth = 10;
-  ctx.globalAlpha = 0.28;
-  ctx.beginPath();
-  ctx.moveTo(pts[0].x, pts[0].y);
-  for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
-  ctx.stroke();
-
-  // núcleo brillante
-  ctx.lineWidth = 3;
-  ctx.globalAlpha = 1;
-  ctx.strokeStyle = "#ffffff";
-  ctx.beginPath();
-  ctx.moveTo(pts[0].x, pts[0].y);
-  for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
-  ctx.stroke();
-
-  ctx.restore();
-}
+// (Laser effect removed) Previously drawLaser exported here; removed to improve performance.
