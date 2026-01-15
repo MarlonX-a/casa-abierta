@@ -170,6 +170,15 @@ export default function CanvasComponent({ detector, isModelLoaded }) {
 
   const availableTools = ["select", "hand", "draw", "eraser", "geo"];
 
+  // Mapeo para mostrar nombres de herramienta en español en el overlay
+  const toolLabels = {
+    select: "Seleccionar",
+    hand: "Mano",
+    draw: "Lápiz",
+    eraser: "Borrador",
+    geo: "Geométrico",
+  };
+
   const changeCanvasTool = (gesture) => {
     if (gesture === previousGestureRef.current) return;
     previousGestureRef.current = gesture;
@@ -418,7 +427,28 @@ export default function CanvasComponent({ detector, isModelLoaded }) {
         const { x, y } = screenFromNormalized(p, canvasW, canvasH);
 
         drawHalo(ctx, x, y, { baseRadius: 44, color: state.color, progress: eased, alpha: 1 });
-        drawLabel(ctx, x, y - 56, { text: state.label, confidence: null, bg: "rgba(0,0,0,0.45)" });
+        try {
+          const tool = (editor && editor.getCurrentTool && editor.getCurrentTool()) || null;
+          const toolName = tool ? toolLabels[tool.id] || tool.id : state.label;
+          // Compensar el `transform: scaleX(-1)` aplicado por CSS al canvas
+          // Dibujamos la etiqueta con una transform horizontal para que quede legible
+          const canvasW = ctx.canvas.width || window.innerWidth;
+          ctx.save();
+          ctx.translate(canvasW, 0);
+          ctx.scale(-1, 1);
+          drawLabel(ctx, canvasW - x, y - 56, { text: toolName, confidence: null, bg: "rgba(0,0,0,0.45)" });
+          ctx.restore();
+        } catch (e) {
+          ctx.save();
+          try {
+            const canvasW = ctx.canvas.width || window.innerWidth;
+            ctx.translate(canvasW, 0);
+            ctx.scale(-1, 1);
+            drawLabel(ctx, canvasW - x, y - 56, { text: state.label, confidence: null, bg: "rgba(0,0,0,0.45)" });
+          } finally {
+            ctx.restore();
+          }
+        }
       }
     } catch (e) {
       // ignore overlay drawing errors

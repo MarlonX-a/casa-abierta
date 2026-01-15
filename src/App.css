@@ -202,3 +202,18 @@ canvas {
   50% { transform: translateY(-3px); }
   100% { transform: translateY(0); }
 }
+
+/* Hide unwanted TLDraw toolbar buttons (arrow, text, note, media) */
+/* Matches common English and Spanish titles/aria-labels */
+[title*="Arrow"], [aria-label*="Arrow"],
+[title*="Flecha"], [aria-label*="Flecha"],
+[title*="Text"], [aria-label*="Text"],
+[title*="Texto"], [aria-label*="Texto"],
+[title*="Note"], [aria-label*="Note"],
+[title*="Nota"], [aria-label*="Nota"],
+[title*="Media"], [aria-label*="Media"],
+[title*="Medios"], [aria-label*="Medios"] {
+  display: none !important;
+  pointer-events: none !important;
+  visibility: hidden !important;
+}
